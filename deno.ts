@@ -12,14 +12,15 @@ console.log("Hello, %s", login);
 const repos = c.repos || [];
 webhooks.on(
   [
+    "pull_request",
     "pull_request.opened",
     "pull_request.synchronize",
-    "pull_request.synchronized", // gitea
+    // "pull_request.synchronized", // gitea
     "pull_request.review_requested",
     "pull_request.review_request_removed",
     "pull_request_review",
   ],
-  ({ payload }) => {
+  ({ id, name, payload }) => {
     if (
       repos.some(
         (repo) =>
@@ -27,6 +28,7 @@ webhooks.on(
           repo.repo == payload.repository.name,
       )
     ) {
+      console.info(`Trigger pr status and label  by ${id} ${name}`);
       lgtm.setPrStatusAndLabel(payload.pull_request);
     }
   },
