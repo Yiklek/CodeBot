@@ -55,14 +55,13 @@ function triggerPRStatusAndLabel(req: GiteaPRStatusAndLabelEvent) {
         repo.repo == payload.repository.name,
     )
   ) {
-    console.info(`Trigger pr status and label  by ${id} ${name}`);
+    console.info(`Trigger PR status and label by ${id} ${name}`);
     lgtm.setPrStatusAndLabel(payload.pull_request);
   }
 }
 
 function onGiteaPRStatusAndLabel(e: GiteaPRStatusAndLabelEvent) {
-  const { id, name, payload: body } = e;
-  const payload = body as PRStatusAndLabelPayload;
+  const { id, name, payload } = e;
   // events that gitea is not compatible with github
   const actions = ["synchronized", "reviewed"];
   try {
