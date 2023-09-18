@@ -1,5 +1,7 @@
 import { octokit } from "./api.ts";
 import { addLabels, getPrReviewers } from "./gitea.ts";
+import * as pack from "./package.json" assert { type: "json" };
+
 export const setPrStatusAndLabel = async (pr: {
   labels: { id: number; name: string }[];
   head: { sha: string };
@@ -75,7 +77,7 @@ export const setPrStatusAndLabel = async (pr: {
       sha: pr.head.sha,
       state: state,
       description: message,
-      context: "lgtm",
+      context: `${pack.default.name}/lgtm`,
     });
 
     console.info(
