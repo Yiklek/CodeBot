@@ -70,16 +70,6 @@ export const getPrReviewers = async (req: {
       blockers.delete(review.user.login);
     }
   }
-  for (const requestedReviewer of req.requested_reviewers) {
-    const user = requestedReviewer as { login: string };
-    if (user.login) {
-      approvers.delete(user.login);
-    }
-    const team = requestedReviewer as { name: string };
-    if (team.name) {
-      approvers.delete(team.name);
-    }
-  }
   return { approvers, blockers };
 };
 export const listLabelsForRepo = async (req: {
