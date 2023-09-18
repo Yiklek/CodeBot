@@ -1,10 +1,9 @@
 import { octokit } from "./api.ts";
 
-export const getPrReviewers = async (req: {
+export const listReviews = async (req: {
   owner: string;
   repo: string;
-  pr: number;
-  requested_reviewers: ({ login: string } | { name: string })[];
+  pr_number: number;
 }) => {
   // load all reviews
   const reviews: {
@@ -23,7 +22,7 @@ export const getPrReviewers = async (req: {
   const iterator = octokit.paginate.iterator(octokit.rest.pulls.listReviews, {
     owner: req.owner,
     repo: req.repo,
-    pull_number: req.pr,
+    pull_number: req.pr_number,
     per_page: 100,
   });
 
@@ -31,7 +30,20 @@ export const getPrReviewers = async (req: {
   for await (const { data: results } of iterator) {
     reviews.push(...results);
   }
+  return reviews;
+};
 
+export const getPrReviewers = async (req: {
+  owner: string;
+  repo: string;
+  pr: number;
+  requested_reviewers: ({ login: string } | { name: string })[];
+}) => {
+  const reviews = await listReviews({
+    owner: req.owner,
+    repo: req.repo,
+    pr_number: req.pr,
+  });
   // count approvers and blockers by replaying all reviews (they are already sorted)
   const approvers = new Set<string>();
   const blockers = new Set<string>();
@@ -70,21 +82,35 @@ export const getPrReviewers = async (req: {
   }
   return { approvers, blockers };
 };
-
+export const listLabelsForRepo = async (req: {
+  owner: string;
+  repo: string;
+}) => {
+  const it = octokit.paginate.iterator(octokit.rest.issues.listLabelsForRepo, {
+    owner: req.owner,
+    repo: req.repo,
+    per_page: 100,
+  });
+  const label_ids = new Map<string, number>();
+  const labels_ret = [];
+  for await (const { data: labels } of it) {
+    labels_ret.push(...labels);
+    for (const l of labels) {
+      label_ids.set(l.name, l.id);
+    }
+  }
+  return { labels: labels_ret, label_ids };
+};
 export const removeLabel = async (req: {
   owner: string;
   repo: string;
   issue_number: number;
   name: string;
 }) => {
-  const labels = await octokit.rest.issues.listLabelsForRepo({
+  const { label_ids } = await listLabelsForRepo({
     owner: req.owner,
     repo: req.repo,
   });
-  const label_ids = new Map<string, number>();
-  for (const l of labels.data) {
-    label_ids.set(l.name, l.id);
-  }
   await octokit.rest.issues.removeLabel({
     owner: req.owner,
     repo: req.repo,
@@ -99,14 +125,10 @@ export const addLabels = async (req: {
   issue_number: number;
   labels: string[];
 }) => {
-  const labels = await octokit.rest.issues.listLabelsForRepo({
+  const { label_ids } = await listLabelsForRepo({
     owner: req.owner,
     repo: req.repo,
   });
-  const label_ids = new Map<string, number>();
-  for (const l of labels.data) {
-    label_ids.set(l.name, l.id);
-  }
   await octokit.rest.issues.addLabels({
     owner: req.owner,
     repo: req.repo,
