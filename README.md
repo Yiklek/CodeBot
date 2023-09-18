@@ -2,7 +2,7 @@
 
 ## config
 
-Bot will import `config.js`. 
+Bot will import `config.js`.
 
 Example:
 

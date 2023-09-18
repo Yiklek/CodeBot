@@ -1,13 +1,15 @@
 import { EmitterWebhookEventName, octokit, webhooks } from "./api.ts";
-import config from "./config.js";
+import { Config } from "./Config.ts";
 import * as lgtm from "./lgtm.ts";
+import config from "./config.js";
+const c = config as Config;
 
 const {
   data: { login },
 } = await octokit.rest.users.getAuthenticated();
 console.log("Hello, %s", login);
 
-const repos = config.repos || [];
+const repos = c.repos || [];
 webhooks.on(
   [
     "pull_request.opened",
@@ -47,7 +49,7 @@ for (const repo of repos) {
   }
 }
 
-Deno.serve(config.webhooks, async (req: Request) => {
+Deno.serve(c.webhooks, async (req: Request) => {
   if (req.url.endsWith("/webhooks") && req.method === "POST") {
     const requestBody = await req.text();
     const signature = req.headers.get("x-hub-signature-256");
