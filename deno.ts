@@ -14,6 +14,7 @@ webhooks.on(
   [
     "pull_request.opened",
     "pull_request.synchronize",
+    "pull_request.synchronized", // gitea
     "pull_request.review_requested",
     "pull_request.review_request_removed",
     "pull_request_review",
@@ -56,10 +57,6 @@ Deno.serve(c.webhooks, async (req: Request) => {
     if (!signature) {
       return Response.json({ message: "Missing signature" }, { status: 400 });
     }
-    const verified = await webhooks.verify(requestBody, signature);
-    if (!verified) {
-      return Response.json({ message: "Invalid signature" }, { status: 400 });
-    }
 
     // parse webhook
     const id = req.headers.get("x-github-delivery");
@@ -72,13 +69,19 @@ Deno.serve(c.webhooks, async (req: Request) => {
         },
       );
     }
-
-    await webhooks.verifyAndReceive({
-      id,
-      name,
-      payload: requestBody,
-      signature: signature,
-    });
+    try {
+      await webhooks.verifyAndReceive({
+        id,
+        name,
+        payload: requestBody,
+        signature: signature,
+      });
+    } catch (error) {
+      return Response.json(
+        { message: error.message.trim().split("\n")[0] },
+        { status: 400 },
+      );
+    }
 
     return Response.json({ message: "Webhook received" });
   } else {
