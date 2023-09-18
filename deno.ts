@@ -2,6 +2,13 @@ import { EmitterWebhookEventName, octokit, webhooks } from "./api.ts";
 import { Config } from "./Config.ts";
 import * as lgtm from "./lgtm.ts";
 import config from "./config.js";
+import {
+  PullRequestEvent,
+  PullRequestOpenedEvent,
+  PullRequestReviewEvent,
+  PullRequestReviewRequestedEvent,
+  PullRequestReviewRequestRemovedEvent,
+} from "@octokit/webhooks-types";
 const c = config as Config;
 
 const {
@@ -18,19 +25,65 @@ webhooks.on(
     "pull_request.review_request_removed",
     "pull_request_review",
   ],
-  ({ id, name, payload }) => {
-    if (
-      repos.some(
-        (repo) =>
-          repo.owner == payload.repository.owner.login &&
-          repo.repo == payload.repository.name,
-      )
-    ) {
-      console.info(`Trigger pr status and label  by ${id} ${name}`);
-      lgtm.setPrStatusAndLabel(payload.pull_request);
-    }
-  },
+  triggerPRStatusAndLabel,
 );
+type PRStatusAndLabelPayload =
+  | PullRequestEvent
+  | PullRequestOpenedEvent
+  | PullRequestReviewEvent
+  | PullRequestReviewRequestRemovedEvent
+  | PullRequestReviewRequestedEvent;
+
+// deno-lint-ignore no-unused-vars
+class GiteaPRStatusAndLabelEvent {
+  id: string;
+  name: string;
+  payload: PRStatusAndLabelPayload;
+  constructor(id: string, name: string, payload: PRStatusAndLabelPayload) {
+    this.id = id;
+    this.name = name;
+    this.payload = payload;
+  }
+}
+
+function triggerPRStatusAndLabel(req: GiteaPRStatusAndLabelEvent) {
+  const { id, name, payload } = req;
+  if (
+    repos.some(
+      (repo) =>
+        repo.owner == payload.repository.owner.login &&
+        repo.repo == payload.repository.name,
+    )
+  ) {
+    console.info(`Trigger pr status and label  by ${id} ${name}`);
+    lgtm.setPrStatusAndLabel(payload.pull_request);
+  }
+}
+
+function onGiteaPRStatusAndLabel(e: GiteaPRStatusAndLabelEvent) {
+  const { id, name, payload: body } = e;
+  const payload = body as PRStatusAndLabelPayload;
+  // events that gitea is not compatible with github
+  const actions = ["synchronized", "reviewed"];
+  try {
+    if (
+      payload.pull_request !== undefined &&
+      actions.some((i) => i == payload.action)
+    ) {
+      triggerPRStatusAndLabel({ id, name, payload });
+    }
+  } catch (error) {
+    return Response.json(
+      { message: error.message.trim().split("\n")[0] },
+      { status: 400 },
+    );
+  }
+}
+webhooks.onAny((e) => {
+  const { id, name, payload: body } = e;
+  const payload = body as PRStatusAndLabelPayload;
+  onGiteaPRStatusAndLabel({ id, name, payload });
+});
 
 for (const repo of repos) {
   try {
@@ -76,14 +129,6 @@ Deno.serve(c.webhooks, async (req: Request) => {
         payload: requestBody,
         signature: signature,
       });
-      const body = JSON.parse(requestBody);
-      // events that gitea is not compatible with github
-      if (
-        body.pull_request !== undefined &&
-        ["synchronized", "reviewed"].some((i) => i == body.action)
-      ) {
-        lgtm.setPrStatusAndLabel(body.pull_request);
-      }
     } catch (error) {
       return Response.json(
         { message: error.message.trim().split("\n")[0] },
