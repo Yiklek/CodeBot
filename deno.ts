@@ -30,13 +30,17 @@ webhooks.on(
 );
 
 for (const repo of repos) {
-  const prs = await octokit.rest.pulls.list({
-    owner: repo.owner,
-    repo: repo.repo,
-    state: "open",
-  });
-  for (const pr of prs.data) {
-    lgtm.setPrStatusAndLabel(pr);
+  try {
+    const prs = await octokit.rest.pulls.list({
+      owner: repo.owner,
+      repo: repo.repo,
+      state: "open",
+    });
+    for (const pr of prs.data) {
+      lgtm.setPrStatusAndLabel(pr);
+    }
+  } catch (e) {
+    console.error(`[${repo.owner}/${repo.repo}] Failed to label pr.`, e);
   }
 }
 
