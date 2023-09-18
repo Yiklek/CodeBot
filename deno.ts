@@ -12,10 +12,8 @@ console.log("Hello, %s", login);
 const repos = c.repos || [];
 webhooks.on(
   [
-    "pull_request",
     "pull_request.opened",
     "pull_request.synchronize",
-    // "pull_request.synchronized", // gitea
     "pull_request.review_requested",
     "pull_request.review_request_removed",
     "pull_request_review",
@@ -78,6 +76,14 @@ Deno.serve(c.webhooks, async (req: Request) => {
         payload: requestBody,
         signature: signature,
       });
+      const body = JSON.parse(requestBody);
+      // events that gitea is not compatible with github
+      if (
+        body.pull_request !== undefined &&
+        ["synchronized", "reviewed"].some((i) => i == body.action)
+      ) {
+        lgtm.setPrStatusAndLabel(body.pull_request);
+      }
     } catch (error) {
       return Response.json(
         { message: error.message.trim().split("\n")[0] },
