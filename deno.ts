@@ -44,7 +44,7 @@ for (const repo of repos) {
   }
 }
 
-Deno.serve({ port: 3001 }, async (req: Request) => {
+Deno.serve(config.webhooks, async (req: Request) => {
   if (req.url.endsWith("/webhooks") && req.method === "POST") {
     const requestBody = await req.text();
     const signature = req.headers.get("x-hub-signature-256");
