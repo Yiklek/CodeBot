@@ -1,5 +1,5 @@
 import { EmitterWebhookEventName, octokit, webhooks } from "./api.ts";
-import { Config } from "./Config.ts";
+import { Config } from "./Config.d.ts";
 import * as lgtm from "./lgtm.ts";
 import config from "./config.js";
 import {
@@ -27,23 +27,17 @@ webhooks.on(
   ],
   triggerPRStatusAndLabel,
 );
-type PRStatusAndLabelPayload =
+declare type PRStatusAndLabelPayload =
   | PullRequestEvent
   | PullRequestOpenedEvent
   | PullRequestReviewEvent
   | PullRequestReviewRequestRemovedEvent
   | PullRequestReviewRequestedEvent;
 
-// deno-lint-ignore no-unused-vars
-class GiteaPRStatusAndLabelEvent {
+declare class GiteaPRStatusAndLabelEvent {
   id: string;
   name: string;
   payload: PRStatusAndLabelPayload;
-  constructor(id: string, name: string, payload: PRStatusAndLabelPayload) {
-    this.id = id;
-    this.name = name;
-    this.payload = payload;
-  }
 }
 
 function triggerPRStatusAndLabel(req: GiteaPRStatusAndLabelEvent) {
