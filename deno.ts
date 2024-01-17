@@ -1,7 +1,8 @@
 import { EmitterWebhookEventName, octokit, webhooks } from "./api.ts";
 import { Config } from "./Config.d.ts";
 import * as lgtm from "./lgtm.ts";
-import config from "./config.js";
+import { parse } from "https://deno.land/std@0.212.0/toml/mod.ts";
+
 import {
   PullRequestEvent,
   PullRequestOpenedEvent,
@@ -9,14 +10,18 @@ import {
   PullRequestReviewRequestedEvent,
   PullRequestReviewRequestRemovedEvent,
 } from "@octokit/webhooks-types";
-const c = config as Config;
+
+const config = parse(
+  await Deno.readTextFile("./config.toml"),
+) as unknown as Config;
 
 const {
   data: { login },
 } = await octokit.rest.users.getAuthenticated();
+
 console.log("Hello, %s", login);
 
-const repos = c.repos || [];
+const repos = config.repos || [];
 webhooks.on(
   [
     "pull_request.opened",
@@ -96,7 +101,7 @@ for (const repo of repos) {
   }
 }
 
-Deno.serve(c.webhooks, async (req: Request) => {
+Deno.serve(config.webhooks, async (req: Request) => {
   if (req.url.endsWith("/webhooks") && req.method === "POST") {
     const requestBody = await req.text();
     const signature = req.headers.get("x-hub-signature-256");

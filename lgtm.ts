@@ -39,7 +39,7 @@ export const setPrStatusAndLabel = async (pr: {
           owner: pr.base.repo.owner.login,
           repo: pr.base.repo.name,
           issue_number: pr.number,
-          name: label.id,
+          name: String(label.id),
         });
         console.info(
           `[${repo}] Removed ${label.name} from "${pr.title}" (#${pr.number})`,
