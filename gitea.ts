@@ -8,15 +8,16 @@ export const listReviews = async (req: {
   // load all reviews
   const reviews: {
     state:
+      | string
       | "APPROVED"
       | "CHANGES_REQUESTED"
       | "REQUEST_CHANGES" // gitea
       | "COMMENTED"
       | "DISMISSED"
       | "PENDING";
-    user: { login: string };
+    user: { login: string } | null;
     id: number;
-    dismissed: boolean;
+    // dismissed: boolean;
   }[] = [];
 
   const iterator = octokit.paginate.iterator(octokit.rest.pulls.listReviews, {
@@ -37,7 +38,6 @@ export const getPrReviewers = async (req: {
   owner: string;
   repo: string;
   pr: number;
-  requested_reviewers: ({ login: string } | { name: string })[];
 }) => {
   const reviews = await listReviews({
     owner: req.owner,
@@ -48,6 +48,12 @@ export const getPrReviewers = async (req: {
   const approvers = new Set<string>();
   const blockers = new Set<string>();
   for (const review of reviews) {
+    if (review.user == null) {
+      console.log(
+        `[${req.owner}/${req.repo}] #${req.pr} user of Review @${review.id} is null. skip.`,
+      );
+      continue;
+    }
     switch (review.state) {
       case "APPROVED":
         approvers.add(review.user.login);
@@ -64,10 +70,6 @@ export const getPrReviewers = async (req: {
         break;
       default:
         break;
-    }
-    if (review.dismissed) {
-      approvers.delete(review.user.login);
-      blockers.delete(review.user.login);
     }
   }
   return { approvers, blockers };
@@ -105,7 +107,7 @@ export const removeLabel = async (req: {
     owner: req.owner,
     repo: req.repo,
     issue_number: req.issue_number,
-    name: label_ids.get(req.name),
+    name: String(label_ids.get(req.name)),
   });
 };
 
@@ -123,6 +125,6 @@ export const addLabels = async (req: {
     owner: req.owner,
     repo: req.repo,
     issue_number: req.issue_number,
-    labels: req.labels.map((s) => label_ids.get(s)),
+    labels: req.labels.map((s) => String(label_ids.get(s))),
   });
 };

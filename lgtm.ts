@@ -1,6 +1,6 @@
 import { octokit } from "./api.ts";
 import { addLabels, getPrReviewers } from "./gitea.ts";
-import { default as pack } from "./package.json" assert { type: "json" };
+import { default as pack } from "./package.json" with { type: "json" };
 
 export const setPrStatusAndLabel = async (pr: {
   labels: { id: number; name: string }[];
@@ -8,7 +8,6 @@ export const setPrStatusAndLabel = async (pr: {
   base: { repo: { owner: { login: string }; name: string } };
   title: string;
   number: number;
-  requested_reviewers: ({ login: string } | { name: string })[] | undefined;
 }) => {
   let reviewers;
   const repo = `${pr.base.repo.owner.login}/${pr.base.repo.name}`;
@@ -17,7 +16,6 @@ export const setPrStatusAndLabel = async (pr: {
       owner: pr.base.repo.owner.login,
       repo: pr.base.repo.name,
       pr: pr.number,
-      requested_reviewers: pr.requested_reviewers || [],
     });
   } catch (error) {
     console.error(error);
