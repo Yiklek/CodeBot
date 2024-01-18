@@ -1,7 +1,7 @@
 import { EmitterWebhookEventName, octokit, webhooks } from "./api.ts";
 import { Config } from "./Config.d.ts";
 import * as lgtm from "./lgtm.ts";
-import { parse } from "https://deno.land/std@0.212.0/toml/mod.ts";
+import { parse } from "std/toml/mod.ts";
 
 import {
   PullRequestEvent,
